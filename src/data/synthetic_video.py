@@ -321,11 +321,26 @@ class SyntheticVideos:
         return max(0.0, (largura - 2 * meia_largura) / self.speed)
 
     def _criar_occluders(self, rng, designado: MovingEllipse) -> list[Occluder]:
-        """O poste calibrado, mais as barras extras pedidas em ``n_occluders``."""
+        """O poste calibrado, mais as barras extras pedidas em ``n_occluders``.
+
+        Com ``n_occluders = 0`` não há barra nenhuma — nem a calibrada. A versão anterior
+        criava o poste antes de olhar o parâmetro, então pedir zero barras devolvia uma, e
+        de largura ``2·meia_largura`` (o que sai da fórmula com ``occlusion_duration = 0``):
+        uma barra do tamanho do objeto, que oclui parcialmente o tempo todo.
+
+        Isso impedia o artefato 4 da Parte 0 de existir. O "baseline no piso fácil" pede uma
+        configuração **sem oclusão**, em que o IDF1 tem que ficar colado em 1; com o poste
+        fantasma, o piso media 0,9627 e não havia como saber se o que faltava era um defeito
+        do rastreador ou do gerador. Oclusão mútua entre elipses continua acontecendo pela
+        ordem de profundidade — essa é da cena, não do parâmetro.
+        """
+        if self.n_occluders <= 0:
+            return []
+
         largura = self._largura_calibrada(designado.half_width(self.size))
         occluders = [Occluder(left=(self.size - largura) // 2, width=largura)]
 
-        for _ in range(max(0, self.n_occluders - 1)):
+        for _ in range(self.n_occluders - 1):
             w = int(rng.randint(4, max(5, self.size // 12)))
             occluders.append(Occluder(left=int(rng.randint(0, self.size - w)), width=w))
         return occluders
