@@ -1,0 +1,22 @@
+[project]
+name = "object-detection-in-videos"
+version = "0.1.0"
+description = "PA2 — Identidade ao longo do tempo: detecção, recorrência e rastreamento"
+readme = "README.md"
+authors = [
+    { name = "jaopredo", email = "joao.profissional.45@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    # grava os vídeos sintéticos da Parte 0 em mp4
+    "imageio[ffmpeg]>=2.34",
+    # o entregável notebooks/inferencia.ipynb precisa de um kernel para abrir
+    "ipykernel>=6.29",
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "pytest>=8.0",
+    "pyyaml>=6.0",
+    "scikit-image>=0.22",
+    "scipy>=1.11",
+    "tqdm>=4.66",
+]

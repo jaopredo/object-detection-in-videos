@@ -1,0 +1,12 @@
+{
+  "split": "val",
+  "n_sequences": 2,
+  "n_frames": 77,
+  "n_identities": 25,
+  "density_mean": 12.5,
+  "visibility_mean": 0.5196782499551773,
+  "n_occlusions": 11,
+  "occlusion_mean": 12.636363636363637,
+  "occlusion_p90": 22.0,
+  "occlusion_max": 34
+}

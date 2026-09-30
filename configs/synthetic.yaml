@@ -1,0 +1,25 @@
+# Parte 0 — ambiente controlado onde se sabe a resposta certa.
+# Gera os vídeos sintéticos, o gt.txt em formato MOT e a figura da oclusão.
+name: p0_synthetic
+seed: 0
+
+data:
+  kind: synthetic_video
+  size: 128
+  # split POR SEQUÊNCIA: os três conjuntos são vídeos distintos, gerados com seeds
+  # diferentes. Separar por quadro colocaria o quadro t no treino e o t+1 na validação,
+  # e aí o modelo temporal seria avaliado em cima de algo que já viu.
+  n_train: 8
+  n_val: 2
+  n_test: 2
+  min_frames: 30
+  max_frames: 60
+  min_obj: 5
+  max_obj: 15
+  speed: 2.0                # pixels por quadro
+  occlusion_duration: 10    # quadros atrás do poste — o botão da Parte 1
+  n_occluders: 1
+  noise: 0.05
+  fps: 30.0
+
+output_dir: outputs/p0

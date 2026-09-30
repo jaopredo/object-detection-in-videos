@@ -1,0 +1,39 @@
+[
+  {
+    "name": "SYNTH-VAL-00",
+    "n_frames": 37,
+    "n_identities": 11,
+    "density_mean": 11.0,
+    "density_max": 11,
+    "visibility_mean": 0.6312772631645203,
+    "n_occlusions": 5,
+    "occlusion_mean": 10.4,
+    "occlusion_max": 14,
+    "occlusion_durations": [
+      9,
+      14,
+      13,
+      7,
+      9
+    ]
+  },
+  {
+    "name": "SYNTH-VAL-01",
+    "n_frames": 40,
+    "n_identities": 14,
+    "density_mean": 14.0,
+    "density_max": 14,
+    "visibility_mean": 0.40807923674583435,
+    "n_occlusions": 6,
+    "occlusion_mean": 14.5,
+    "occlusion_max": 34,
+    "occlusion_durations": [
+      11,
+      1,
+      34,
+      18,
+      1,
+      22
+    ]
+  }
+]
