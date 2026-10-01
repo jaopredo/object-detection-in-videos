@@ -1,0 +1,158 @@
+{
+  "piso_facil": {
+    "idf1": 0.9978991596638656,
+    "id_switches": 0,
+    "fragmentations": 1,
+    "count_error": 0
+  },
+  "eixos": {
+    "nº de objetos": [
+      {
+        "valor": 3.0,
+        "idf1": 0.9978991596638656,
+        "id_switches": 0,
+        "fragmentations": 1,
+        "count_error": 0
+      },
+      {
+        "valor": 6.0,
+        "idf1": 1.0,
+        "id_switches": 0,
+        "fragmentations": 0,
+        "count_error": 0
+      },
+      {
+        "valor": 10.0,
+        "idf1": 0.9984324047257416,
+        "id_switches": 0,
+        "fragmentations": 2,
+        "count_error": 0
+      },
+      {
+        "valor": 15.0,
+        "idf1": 0.9983274084793574,
+        "id_switches": 0,
+        "fragmentations": 2,
+        "count_error": 0
+      },
+      {
+        "valor": 20.0,
+        "idf1": 0.997963363049662,
+        "id_switches": 0,
+        "fragmentations": 5,
+        "count_error": 0
+      }
+    ],
+    "velocidade (px/quadro)": [
+      {
+        "valor": 1.0,
+        "idf1": 0.9978991596638656,
+        "id_switches": 0,
+        "fragmentations": 1,
+        "count_error": 0
+      },
+      {
+        "valor": 2.0,
+        "idf1": 0.9989539748953975,
+        "id_switches": 0,
+        "fragmentations": 1,
+        "count_error": 0
+      },
+      {
+        "valor": 4.0,
+        "idf1": 0.8660189075630252,
+        "id_switches": 7,
+        "fragmentations": 1,
+        "count_error": 5
+      },
+      {
+        "valor": 6.0,
+        "idf1": 0.6963650627615063,
+        "id_switches": 83,
+        "fragmentations": 1,
+        "count_error": 62
+      },
+      {
+        "valor": 8.0,
+        "idf1": 0.719281729428173,
+        "id_switches": 102,
+        "fragmentations": 1,
+        "count_error": 73
+      }
+    ],
+    "duração da oclusão (quadros)": [
+      {
+        "valor": 0.0,
+        "idf1": 0.9978991596638656,
+        "id_switches": 0,
+        "fragmentations": 1,
+        "count_error": 0
+      },
+      {
+        "valor": 5.0,
+        "idf1": 0.9036729494092891,
+        "id_switches": 3,
+        "fragmentations": 6,
+        "count_error": 3
+      },
+      {
+        "valor": 10.0,
+        "idf1": 0.7988688582537999,
+        "id_switches": 5,
+        "fragmentations": 6,
+        "count_error": 5
+      },
+      {
+        "valor": 20.0,
+        "idf1": 0.6435884144365969,
+        "id_switches": 5,
+        "fragmentations": 5,
+        "count_error": 5
+      },
+      {
+        "valor": 30.0,
+        "idf1": 0.5726070255253607,
+        "id_switches": 0,
+        "fragmentations": 1,
+        "count_error": 2
+      }
+    ],
+    "detector: % descartado": [
+      {
+        "valor": 0.0,
+        "idf1": 0.9978991596638656,
+        "id_switches": 0,
+        "fragmentations": 1,
+        "count_error": 0
+      },
+      {
+        "valor": 0.1,
+        "idf1": 0.9390562582318815,
+        "id_switches": 0,
+        "fragmentations": 48,
+        "count_error": 0
+      },
+      {
+        "valor": 0.2,
+        "idf1": 0.8797235279360063,
+        "id_switches": 0,
+        "fragmentations": 77,
+        "count_error": 0
+      },
+      {
+        "valor": 0.4,
+        "idf1": 0.7364451643150342,
+        "id_switches": 2,
+        "fragmentations": 108,
+        "count_error": 0
+      },
+      {
+        "valor": 0.6,
+        "idf1": 0.5270116490514025,
+        "id_switches": 4,
+        "fragmentations": 93,
+        "count_error": 3
+      }
+    ]
+  }
+}

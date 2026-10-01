@@ -20,8 +20,19 @@ src/data/datasets/*
 # o mesmo conteúdo e são o que dá lastro à figura da apresentação.
 outputs/**/img1/
 
-# Saídas: figuras, métricas E checkpoints são versionados — dão lastro aos números da
-# apresentação, e o enunciado pede o checkpoint como entregável (PA1, decidido em 10/09).
+# Saídas: figuras, métricas E o checkpoint do modelo final são versionados — dão lastro aos
+# números da apresentação, e o enunciado pede o checkpoint como entregável. O modelo tem 19k
+# parâmetros, então `outputs/p2/best.pth` tem 250 KB: cabe no git sem discussão.
+
+# Os 72 checkpoints da ablação da Parte 3, não. São 18 MB de pesos intermediários que se
+# regeneram com `make parte3` em ~45 min, e o que dá lastro ao resultado é o `report.json`
+# e o `eixo1.png`, que ficam versionados. A comparação de gradiente da Parte 4 grava os
+# próprios números em JSON, de modo que a figura seja reproduzível sem os pesos.
+outputs/ablation/**/*.pth
+
+# O vídeo de demonstração do notebook: 16 MB que saem de `notebooks/inferencia.ipynb` em
+# segundos. Versionar a saída de um entregável que existe para ser executado é redundante.
+outputs/inferencia/
 
 # Logs de execução dos treinos: ruído, não resultado.
 logs/

@@ -94,10 +94,33 @@ class SyntheticVideoFactory(DatasetFactory):
         )
 
 
+class MOT17Factory(DatasetFactory):
+    """O MOT17 lido do disco, com o split **por sequência** fixado em ``src/data/mot17.py``.
+
+    Ao contrário do sintético, aqui os três conjuntos não são gerados: são escolhas de quais
+    das 7 sequências de ``train/`` entram em cada um. O ``seed`` não influencia nada — o
+    split é fixo de propósito, para que dois experimentos rodados em dias diferentes estejam
+    falando das mesmas sequências.
+
+    O ``test/`` do benchmark não entra em lugar nenhum: ele não tem ``gt.txt``.
+    """
+
+    CHAVES = {"root", "detector", "min_score"}
+
+    def build(self, cfg: TrainConfig, split: str):
+        from src.data.mot17 import MOT17Split
+
+        return MOT17Split(
+            root=cfg.data.get("root", "src/data/datasets/MOT17"),
+            split=split,
+            detector=cfg.data.get("detector", "SDP"),
+        )
+
+
 class DatasetFactoryRegistry:
     _factories = {
         "synthetic_video": SyntheticVideoFactory(),
-        # "mot17": MOT17Factory(),  # chega junto com a Parte 1
+        "mot17": MOT17Factory(),
     }
 
     @classmethod

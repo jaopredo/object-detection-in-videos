@@ -1,0 +1,44 @@
+# Parte 1 — baseline por quadro no MOT17.
+# Sem treino: a fonte de detecções é pública e o rastreador é associação por IoU.
+name: p1_mot17
+seed: 0
+
+data:
+  kind: mot17
+  root: src/data/datasets/MOT17
+  # SDP é a fonte padrão do PA. Medido em 30/09 (AP@0,5 com o gabarito filtrado):
+  #   sequência   DPM      FRCNN    SDP
+  #   MOT17-02    0,3251   0,4115   0,5202
+  #   MOT17-10    0,4494   0,6192   0,8072
+  #   MOT17-09    0,6983   0,6983   0,7955
+  # O SDP ganha nas três, e por margem larga. A escolha importa porque o PA2 é sobre
+  # associação: com o detector mais forte, o que sobra de erro é de identidade, que é o
+  # assunto. Com o DPM, metade do fracasso seria detecção — e a Parte 2 estaria consertando
+  # o problema errado. O DPM ainda tem um agravante: os scores dele vão de -0,50 a 3,14
+  # (log-odds), contra [0,4; 1,0] do SDP, então `min_score` significaria outra coisa nele.
+  detector: SDP
+  min_score: 0.0
+
+# A regra de associação e a gestão de nascimento/morte — o enunciado (Parte 1, item 4) pede
+# que estejam documentadas, porque regras diferentes dão números diferentes.
+tracking:
+  tracker: iou
+  # Limiar baixo de propósito: a 30 fps um pedestre anda pouco entre quadros, mas a caixa do
+  # SDP oscila de tamanho, e 0,5 mataria associações corretas. É o botão mais sensível aqui.
+  iou_threshold: 0.3
+  # Quantos quadros uma track sobrevive sem observação. É o teto duro do horizonte de
+  # memória que a Parte 4 mede: com max_age menor que a oclusão típica, nenhum modelo
+  # temporal consegue atravessá-la.
+  max_age: 30
+  # Observações antes de a track aparecer na saída. Filtra o falso positivo isolado, que de
+  # outro modo vira uma identidade inteira e estraga a contagem de identidades únicas.
+  # A emissão é retroativa: confirmar não custa os primeiros quadros da track.
+  min_hits: 3
+  associacao: hungarian
+  # Posição constante é o baseline do enunciado. `true` liga a extrapolação linear — o
+  # baseline honesto que a Parte 2 precisa vencer.
+  velocidade: false
+
+output_dir: outputs/p1
+figures_dir: outputs/figures
+split: val

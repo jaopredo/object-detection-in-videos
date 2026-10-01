@@ -1,0 +1,55 @@
+{
+  "split": "val",
+  "n_sequences": 1,
+  "n_frames": 654,
+  "ap_mean": 0.8071781658701372,
+  "idf1_mean": 0.40914394364979906,
+  "idp_mean": 0.45952242283051836,
+  "idr_mean": 0.36872030531972894,
+  "mota_mean": 0.6519978191447933,
+  "id_switches": 519,
+  "fragmentations": 442,
+  "n_gt_ids": 57,
+  "n_pred_ids": 209,
+  "count_error": 152,
+  "variantes": {
+    "config": {
+      "idf1": 0.40914394364979906,
+      "id_switches": 519,
+      "fragmentations": 442,
+      "count_error": 152
+    },
+    "guloso": {
+      "idf1": 0.4126874378808176,
+      "id_switches": 587,
+      "fragmentations": 448,
+      "count_error": 186
+    },
+    "limiar 0,5": {
+      "idf1": 0.35294629645748105,
+      "id_switches": 919,
+      "fragmentations": 473,
+      "count_error": 380
+    },
+    "max_age 5": {
+      "idf1": 0.4261400545667143,
+      "id_switches": 438,
+      "fragmentations": 430,
+      "count_error": 201
+    },
+    "velocidade": {
+      "idf1": 0.37149177981173814,
+      "id_switches": 507,
+      "fragmentations": 435,
+      "count_error": 284
+    }
+  },
+  "tracking": {
+    "iou_threshold": 0.3,
+    "max_age": 30,
+    "min_hits": 3,
+    "associacao": "hungarian",
+    "velocidade": false
+  },
+  "detector": "SDP"
+}

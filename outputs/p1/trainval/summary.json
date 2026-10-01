@@ -1,0 +1,55 @@
+{
+  "split": "trainval",
+  "n_sequences": 5,
+  "n_frames": 3954,
+  "ap_mean": 0.6918640209585961,
+  "idf1_mean": 0.5023899061945922,
+  "idp_mean": 0.5934424679809593,
+  "idr_mean": 0.4374847924511241,
+  "mota_mean": 0.5785149820692939,
+  "id_switches": 1881,
+  "fragmentations": 2865,
+  "n_gt_ids": 387,
+  "n_pred_ids": 957,
+  "count_error": 570,
+  "variantes": {
+    "config": {
+      "idf1": 0.5023899061945922,
+      "id_switches": 1881,
+      "fragmentations": 2865,
+      "count_error": 570
+    },
+    "guloso": {
+      "idf1": 0.501833039940087,
+      "id_switches": 2127,
+      "fragmentations": 2864,
+      "count_error": 681
+    },
+    "limiar 0,5": {
+      "idf1": 0.45527537238538107,
+      "id_switches": 3450,
+      "fragmentations": 3059,
+      "count_error": 1234
+    },
+    "max_age 5": {
+      "idf1": 0.500625766585371,
+      "id_switches": 1445,
+      "fragmentations": 2626,
+      "count_error": 770
+    },
+    "velocidade": {
+      "idf1": 0.4635835507282656,
+      "id_switches": 1929,
+      "fragmentations": 2629,
+      "count_error": 1159
+    }
+  },
+  "tracking": {
+    "iou_threshold": 0.3,
+    "max_age": 30,
+    "min_hits": 3,
+    "associacao": "hungarian",
+    "velocidade": false
+  },
+  "detector": "SDP"
+}

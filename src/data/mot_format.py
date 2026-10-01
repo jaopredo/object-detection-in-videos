@@ -24,8 +24,8 @@ import numpy as np
 
 from src.data.sequence import Frame, Sequence
 
-#: classe "pedestre" do MOT17. O sintético usa a mesma para não inventar um vocabulário
-#: paralelo; nada no projeto filtra por classe ainda.
+#: classe "pedestre" do MOT17. O sintético grava a mesma, o que faz o filtro do MOT17
+#: valer para os dois sem caso especial.
 PEDESTRE = 1
 
 
@@ -63,6 +63,7 @@ def read_mot_gt(
     width: int = 0,
     height: int = 0,
     n_frames: int | None = None,
+    only_active_pedestrians: bool = False,
 ) -> Sequence:
     """Lê um ``gt.txt`` e devolve a ``Sequence`` correspondente (sem imagens).
 
@@ -73,6 +74,19 @@ def read_mot_gt(
             ``seqinfo.ini`` separado; aqui entram por parâmetro.
         n_frames: comprimento da sequência. Se ``None``, usa o maior número de quadro
             visto no arquivo — o que subestima quando os últimos quadros estão vazios.
+        only_active_pedestrians: mantém só as linhas com ``flag = 1`` e ``classe = 1``.
+
+            É **obrigatório** no MOT17 e inofensivo no sintético. No ``gt.txt`` do MOT17 a
+            sétima coluna não é confiança: é um *flag* que diz se a linha entra na
+            avaliação, e a oitava é a classe. Só ``1, 1`` (pedestre considerado) conta. O
+            resto são pessoas estáticas (7), occluders (9), bicicletas (4), pessoas em
+            veículos (2) e distratores (8) — em MOT17-02 isso é 11.422 linhas de 30.003,
+            **38% do arquivo**. Ler sem filtrar infla o número de identidades, enche o
+            gabarito de objetos que nenhum detector de pedestre vai achar, e derruba o IDF1
+            por um motivo que não tem nada a ver com rastreamento.
+
+            O padrão é ``False`` para não mudar em silêncio o que o sintético já fazia; o
+            leitor do MOT17 passa ``True`` explicitamente.
 
     Returns:
         A sequência, com um ``Frame`` por índice, inclusive os quadros sem nenhum objeto.
@@ -89,6 +103,11 @@ def read_mot_gt(
         if not linha:
             continue
         campos = linha.split(",")
+        if only_active_pedestrians:
+            flag = float(campos[6]) if len(campos) > 6 else 1.0
+            classe = int(float(campos[7])) if len(campos) > 7 else PEDESTRE
+            if flag != 1 or classe != PEDESTRE:
+                continue
         quadro = int(float(campos[0])) - 1  # 1-indexado em disco → 0-indexado em memória
         track_id = int(float(campos[1]))
         left, top, w, h = (float(c) for c in campos[2:6])

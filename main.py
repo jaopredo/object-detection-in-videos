@@ -30,9 +30,12 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="PA2 — identidade ao longo do tempo")
     parser.add_argument(
         "--mode",
-        choices=["gen-synth", "train", "eval", "both"], default="gen-synth",
-        help="gen-synth: gera os vídeos sintéticos da Parte 0 e a figura da oclusão; "
-             "eval: caracteriza um split; train/both: treino do modelo temporal (Parte 2)",
+        choices=["gen-synth", "sweep", "baseline", "train", "eval", "both", "ablation", "stress", "fails"],
+        default="gen-synth",
+        help="gen-synth: gera os vídeos sintéticos da Parte 0; sweep: gira os botões do "
+             "gerador e mede onde o baseline quebra (Parte 0); baseline: rastreamento "
+             "ingênuo por IoU (Parte 1); eval: caracteriza um split; train/both: treino do "
+             "modelo temporal (Parte 2); ablation: Eixo 1 da Parte 3",
     )
     parser.add_argument(
         "--config", default="configs/synthetic.yaml",
@@ -43,7 +46,7 @@ def parse_arguments() -> argparse.Namespace:
         help="atalho para --config configs/synthetic.yaml",
     )
     parser.add_argument(
-        "--split", choices=["train", "val", "test"], default=None,
+        "--split", choices=["train", "val", "test", "trainval"], default=None,
         help="--mode eval: em qual conjunto avaliar. O padrão vem do config (val). "
              "Usar 'test' é uma decisão explícita: ele só deve ser tocado no fim.",
     )
@@ -83,6 +86,38 @@ def main():
         ).run()
         return
 
+    # ===== PARTE 0 — VARREDURA DOS BOTÕES =====
+    if args.mode == "sweep":
+        from src.synthetic.sweep import SweepRunner
+        SweepRunner(app_config, saida=args.gen_output).run()
+        return
+
+    # ===== PARTE 1 — BASELINE POR QUADRO =====
+    if args.mode == "baseline":
+        from src.baseline.runner import BaselineRunner
+        BaselineRunner(app_config, split=args.split).run()
+        return
+
+    # ===== PARTE 3 — ABLAÇÃO (EIXO 1) =====
+    if args.mode == "ablation":
+        from src.ablation.runner import AblationRunner
+        AblationRunner(args.config).run()
+        return
+
+    # ===== PARTE 4 — GALERIA DE FALHAS E HORIZONTE DE MEMÓRIA =====
+    if args.mode == "fails":
+        from src.fails.runner import FailsRunner
+        checkpoint = Path(args.checkpoint) if args.checkpoint else None
+        FailsRunner(app_config, checkpoint, split=args.split).run()
+        return
+
+    # ===== PARTE 5 — TESTE DE ESTRESSE =====
+    if args.mode == "stress":
+        from src.stress.framerate import FramerateStress
+        checkpoint = Path(args.checkpoint) if args.checkpoint else None
+        FramerateStress(app_config, checkpoint, split=args.split).run()
+        return
+
     # ===== TREINO (Parte 2) =====
     # importado aqui dentro de propósito: o engine carrega o torch, e as partes 0 e 1 não
     # precisam dele. Importar no topo obrigaria a instalar torch para gerar um vídeo.
@@ -93,12 +128,20 @@ def main():
 
     # ===== AVALIAÇÃO =====
     if args.mode in ("eval", "both"):
-        from src.evaluation.engine import EvalEngine
         cfg = app_config.get_eval_config()
         if args.split:
             cfg.split = args.split
         checkpoint = Path(args.checkpoint) if args.checkpoint else None
-        EvalEngine(app_config, checkpoint).run()
+
+        # Com modelo declarado, avaliar é comparar rastreadores (Parte 2 em diante). Sem
+        # modelo, é caracterizar o conjunto — densidade, identidades, oclusão —, que é o que
+        # as Partes 0 e 1 precisam e o que o EvalEngine antigo faz.
+        if cfg.model.get("name"):
+            from src.evaluation.tracking_engine import TrackingEvalEngine
+            TrackingEvalEngine(app_config, checkpoint, split=cfg.split).run()
+        else:
+            from src.evaluation.engine import EvalEngine
+            EvalEngine(app_config, checkpoint).run()
 
 
 if __name__ == "__main__":

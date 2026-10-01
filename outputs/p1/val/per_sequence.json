@@ -1,0 +1,24 @@
+[
+  {
+    "name": "MOT17-10",
+    "n_frames": 654,
+    "density": 19.6,
+    "camera": "m\u00f3vel",
+    "ap": 0.8071781658701372,
+    "idf1": 0.40914394364979906,
+    "idp": 0.45952242283051836,
+    "idr": 0.36872030531972894,
+    "id_switches": 519,
+    "fragmentations": 442,
+    "n_gt_ids": 57,
+    "n_pred_ids": 209,
+    "count_error": 152,
+    "mota": 0.6519978191447933,
+    "false_positives": 706,
+    "false_negatives": 3243,
+    "n_gt_boxes": 12839,
+    "idtp": 4734,
+    "idfp": 5568,
+    "idfn": 8105
+  }
+]
