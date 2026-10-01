@@ -45,13 +45,38 @@ class DataPipeline:
         return self.factory.build(self.cfg, split)
 
     def build_dataloaders(self):
-        """Lotes de janelas de trajetória para treinar o modelo temporal.
+        """Lotes de janelas de trajetória para treinar o modelo temporal (Parte 2).
 
-        Ainda não existe: o recorte de janelas de BPTT depende de qual trilha da Parte 2
-        for escolhida (movimento → sequência de caixas; aparência → sequência de
-        embeddings), e inventar o formato antes dessa decisão seria adivinhar.
+        A amostra é uma janela de ``T`` quadros de **uma** identidade — ver
+        ``src/data/windows.py``. O ``T`` vem de ``train.window``, e é o botão do Eixo 1 da
+        ablação da Parte 3.
+
+        A validação não recebe oclusão simulada (``p_oclusao = 0``): a perda de validação
+        escolhe a época, e se o buraco fosse sorteado a cada avaliação a métrica mudaria de
+        uma época para outra por motivo que não é o modelo. O regime sob oclusão é medido de
+        propósito na Parte 4, com o rastreador inteiro e IDF1.
         """
-        raise NotImplementedError(
-            "o Dataset de janelas de BPTT chega na Parte 2 — ver src/data/windows.py. "
-            "As partes 0 e 1 rodam sem treino: use --mode gen-synth ou --mode eval."
+        from torch.utils.data import DataLoader
+
+        from src.data.windows import TrackWindows, collate
+
+        t = self.cfg.train
+        splits = self.build_datasets()
+        janela = t.get("window", 16)
+
+        def monta(dataset, p_oclusao, embaralha):
+            sequencias = [dataset[i] for i in range(len(dataset))]
+            janelas = TrackWindows(
+                sequencias, T=janela, stride=t.get("stride"),
+                p_oclusao=p_oclusao, oclusao_max=t.get("oclusao_max", 8),
+                strides_dt=tuple(t.get("strides_dt", (1,))),
+            )
+            return DataLoader(
+                janelas, batch_size=t.get("batch_size", 128), shuffle=embaralha,
+                collate_fn=collate, num_workers=t.get("num_workers", 0),
+            )
+
+        return (
+            monta(splits.train, t.get("p_oclusao", 0.5), True),
+            monta(splits.val, 0.0, False),
         )

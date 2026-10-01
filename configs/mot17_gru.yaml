@@ -1,0 +1,74 @@
+# Parte 2 — modelo temporal, trilha A (RNN como modelo de movimento).
+# A fonte de detecções fica CONGELADA a partir daqui: o que muda é o que acontece entre os
+# quadros. Um comando treina, um comando avalia (ver README).
+name: p2_mot17_gru
+seed: 0
+
+data:
+  kind: mot17
+  root: src/data/datasets/MOT17
+  detector: SDP
+  min_score: 0.0
+
+model:
+  name: motion_rnn
+  cell: gru
+  # Sem `hidden`, a célula é dimensionada para caber no orçamento — é o que mantém a
+  # comparação do Eixo 1 (RNN x LSTM x GRU) honesta sem escrever 12 YAMLs quase iguais.
+  # Com 20k: rnn hidden 95, lstm 48, gru 55 — todos entre 96,8% e 98,8% do teto.
+  param_budget: 20000
+  layers: 1
+  prever_incerteza: false
+  loss:
+    name: smooth_l1_box
+    # onde o smooth-L1 troca de quadrático para linear, em unidades de caixa (0,1 = 10% da
+    # largura do objeto)
+    beta: 0.1
+    # concentra o gradiente nos passos em que o modelo está às cegas — é onde a recorrência
+    # tem trabalho a fazer. Nos passos observados, copiar a última caixa já quase resolve.
+    peso_sob_oclusao: 3.0
+
+train:
+  epochs: 40
+  lr: 0.001
+  batch_size: 256
+  # janela de BPTT truncado. É o botão do Eixo 1 da Parte 3 (T ∈ {4, 8, 16, 32}).
+  window: 16
+  stride: 8
+  # fração das janelas de treino que recebe um buraco simulado, e o tamanho máximo dele.
+  # Sem isto o modelo nunca vê no treino o regime em que opera sob oclusão.
+  p_oclusao: 0.5
+  oclusao_max: 8
+  monitor: val_loss
+  monitor_mode: min
+  grad_clip: 1.0
+  save_every: 10
+  num_workers: 0
+
+# Associação e gestão de tracks — os mesmos botões da Parte 1, para a comparação ser justa.
+tracking:
+  tracker: rnn
+  iou_threshold: 0.3
+  # Ajustado na VALIDAÇÃO (MOT17-10), que é para isso que ela serve. Varredura medida:
+  #   max_age      5       10      20      30      60
+  #   IoU IDF1   0,4261  0,4224  0,4250  0,4091  0,4067
+  #   RNN IDF1   0,4653  0,4724  0,4667  0,4279  0,4409
+  # O ótimo de cada um é diferente (5 para o baseline, 10 para o RNN), e a comparação justa
+  # é cada um no seu melhor. Que o RNN aguente uma janela maior já é resultado: ele tem o
+  # que sustentar durante o buraco, e o baseline não.
+  max_age: 10
+  min_hits: 3
+  associacao: hungarian
+  # Emitir a caixa prevista durante a oclusão. FALSO, e o número explica:
+  #   emitir=False   IoU 0,4091   RNN 0,4279   MOTA 0,65
+  #   emitir=True    IoU 0,3109   RNN 0,3296   MOTA 0,07
+  # Sustentar a caixa no buraco melhora revocação (IDR 0,369 → 0,390) e corta fragmentações
+  # em 25%, mas cada quadro emitido às cegas é um falso positivo se o objeto não estava lá —
+  # e com max_age quadros de buraco isso enterra a precisão. Vale para os DOIS rastreadores,
+  # então não é um defeito da recorrência: é a política de decodificação. A Parte 4 volta
+  # aqui, porque a correção óbvia é emitir enquanto houver confiança, e parar depois.
+  emitir_sem_observacao: false
+
+output_dir: outputs/p2
+figures_dir: outputs/figures
+split: val

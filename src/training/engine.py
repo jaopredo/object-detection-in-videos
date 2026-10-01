@@ -203,6 +203,19 @@ class TrainEngine:
         print(f"checkpoint: {cfg.output_dir/'best.pth'}")
         print(f"retomável:  {cfg.output_dir/'last.pth'} (--resume)")
 
+    def run_silencioso(self) -> None:
+        """``run`` sem imprimir nada — para a ablação da Parte 3.
+
+        São 36 runs de 40 épocas: o log por época daria 1.440 linhas e esconderia a única
+        coisa que interessa acompanhar, que é o progresso da grade. O ``history.json`` e os
+        checkpoints continuam sendo gravados igual, então nada de resultado se perde.
+        """
+        import contextlib
+        import io
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.run()
+
     @torch.no_grad()
     def _evaluate(self, model, loader) -> dict:
         """Métricas de validação da época. Sempre inclui ``val_loss``."""

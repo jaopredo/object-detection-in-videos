@@ -1,0 +1,97 @@
+{
+  "memoria": {
+    "horizonte_analitico": 6,
+    "horizonte_empirico": 5,
+    "queda_do_gradiente": 67.18914801418839,
+    "normas": [
+      0.0004218879621475935,
+      0.00020305352518334985,
+      9.294989285990596e-05,
+      4.558297587209381e-05,
+      2.2898075258126482e-05,
+      1.1759223525587004e-05,
+      6.279108674789313e-06,
+      3.464874907876947e-06,
+      1.9590904685173882e-06,
+      1.1192478268640116e-06,
+      6.366822162817698e-07,
+      3.627157809660275e-07,
+      2.057111885278573e-07,
+      1.1477774108925587e-07,
+      6.232483684698309e-08
+    ],
+    "n_oclusoes_no_dataset": 336,
+    "oclusao_media": 20.351190476190474,
+    "oclusao_p90": 46.0,
+    "oclusoes_rastreadas": 75,
+    "taxa_de_sobrevivencia": 0.3466666666666667,
+    "por_duracao": [
+      {
+        "min": 1,
+        "max": 2,
+        "n": 14,
+        "taxa": 0.7857142857142857
+      },
+      {
+        "min": 3,
+        "max": 5,
+        "n": 7,
+        "taxa": 0.8571428571428571
+      },
+      {
+        "min": 6,
+        "max": 10,
+        "n": 10,
+        "taxa": 0.3
+      },
+      {
+        "min": 11,
+        "max": 20,
+        "n": 13,
+        "taxa": 0.3076923076923077
+      },
+      {
+        "min": 21,
+        "max": 40,
+        "n": 21,
+        "taxa": 0.09523809523809523
+      },
+      {
+        "min": 41,
+        "max": 999999,
+        "n": 10,
+        "taxa": 0.0
+      }
+    ],
+    "fracao_de_oclusoes_alem_do_horizonte": 0.6339285714285714
+  },
+  "galeria": [
+    {
+      "sequencia": "MOT17-02",
+      "track_id": 33,
+      "duracao": 9,
+      "antes": 236,
+      "depois": null,
+      "diagnostico": "esse objeto fica ocluído por 9 quadros — 2x o horizonte analítico de 6 passos, em que a norma do gradiente já caiu 67x. Com janela de BPTT de 16, o modelo nunca recebeu sinal de supervisão que atravessasse esse buraco; o buraco cabe em max_age=10, então a track estava viva do outro lado — o que faltou foi a previsão continuar apontando para o lugar certo. Resultado: a track morreu antes de ele voltar.",
+      "figura": "outputs/figures/p4_falha_1.png"
+    },
+    {
+      "sequencia": "MOT17-10",
+      "track_id": 23,
+      "duracao": 24,
+      "antes": 215,
+      "depois": null,
+      "diagnostico": "esse objeto fica ocluído por 24 quadros — 4x o horizonte analítico de 6 passos, em que a norma do gradiente já caiu 67x. Com janela de BPTT de 16, o modelo nunca recebeu sinal de supervisão que atravessasse esse buraco; o buraco é maior que max_age=10, então a track foi morta pela gestão antes de qualquer previsão poder salvá-la. Resultado: a track morreu antes de ele voltar.",
+      "figura": "outputs/figures/p4_falha_2.png"
+    },
+    {
+      "sequencia": "MOT17-11",
+      "track_id": 49,
+      "duracao": 59,
+      "antes": 142,
+      "depois": null,
+      "diagnostico": "esse objeto fica ocluído por 59 quadros — 10x o horizonte analítico de 6 passos, em que a norma do gradiente já caiu 67x. Com janela de BPTT de 16, o modelo nunca recebeu sinal de supervisão que atravessasse esse buraco; o buraco é maior que max_age=10, então a track foi morta pela gestão antes de qualquer previsão poder salvá-la. Resultado: a track morreu antes de ele voltar.",
+      "figura": "outputs/figures/p4_falha_3.png"
+    }
+  ]
+}

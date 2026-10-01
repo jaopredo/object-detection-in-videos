@@ -25,9 +25,21 @@ class ModelFactory(ABC):
 class ModelFactoryRegistry:
     _factories: dict[str, ModelFactory] = {}
 
+    @staticmethod
+    def _carregar_registros() -> None:
+        """Importa o pacote, o que executa os ``_factories[...] = ...`` dos módulos.
+
+        Sem isto o registry fica vazio quando alguém importa só a factory — que é o que o
+        ``TrainEngine`` faz. O import fica aqui dentro, e não no topo, porque o módulo da
+        factory é importado *pelos* modelos: no topo seria circular.
+        """
+        import importlib
+        importlib.import_module("src.models")
+
     @classmethod
     def get(cls, cfg) -> ModelFactory:
         nome = cfg.model.get("name")
+        cls._carregar_registros()
         if not cls._factories:
             raise NotImplementedError(
                 "nenhum modelo temporal registrado ainda — o modelo da Parte 2 (trilha A "
