@@ -116,7 +116,9 @@ class FramerateStress:
 
         self._resposta(resultados)
 
-        out = Path(self.cfg.output_dir) / "p5"
+        # irmã de `output_dir` (ex.: outputs/p2 → outputs/p5), não filha: a Parte 5 reaproveita
+        # o config da Parte 2 só para achar o checkpoint, o que ela produz é outro artefato.
+        out = Path(self.cfg.output_dir).parent / "p5"
         out.mkdir(parents=True, exist_ok=True)
         (out / "framerate.json").write_text(
             json.dumps({"split": self.split, "fatores": list(self.fatores),

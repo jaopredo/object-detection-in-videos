@@ -88,6 +88,14 @@ SPLITS: dict[str, tuple[str, ...]] = {
 #: abrir o conjunto de teste antes da hora.
 SPLITS["trainval"] = SPLITS["train"] + SPLITS["val"]
 
+#: Corte **dentro** do `train` oficial, só para a validação interna do grid search de
+#: hiperparâmetros (lr, batch_size). Não é o `val` do projeto (MOT17-10, que continua
+#: intocado e serve ao `monitor`/checkpoint e ao tuning de tracking) — é um holdout à parte,
+#: usado só para escolher o hiperparâmetro. MOT17-02 é a menor das quatro sequências de
+#: treino, o que faz dela a fatia mais barata de isolar sem distorcer demais a proporção.
+SPLITS["grid_train"] = ("MOT17-04", "MOT17-11", "MOT17-13")
+SPLITS["grid_val"] = ("MOT17-02",)
+
 
 def pasta_da_sequencia(root: str | Path, nome: str, detector: str = "SDP") -> Path:
     """Caminho de ``<root>/train/MOT17-XX-DET``, com erro útil se não existir."""

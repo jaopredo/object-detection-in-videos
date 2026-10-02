@@ -96,9 +96,9 @@ def comparar(
     destino = Path(destino) if destino else Path("outputs/figures")
     destino.mkdir(parents=True, exist_ok=True)
     _figura(resultados, janela, destino / f"p4_gradiente_celulas_T{janela}.png")
-    (Path("outputs/p2/p4") / f"gradiente_celulas_T{janela}.json").parent.mkdir(
+    (Path("outputs/p4") / f"gradiente_celulas_T{janela}.json").parent.mkdir(
         parents=True, exist_ok=True)
-    (Path("outputs/p2/p4") / f"gradiente_celulas_T{janela}.json").write_text(
+    (Path("outputs/p4") / f"gradiente_celulas_T{janela}.json").write_text(
         json.dumps({"janela": janela, "seed": seed, "run": str(run),
                     "resultados": resultados}, indent=2), encoding="utf-8")
 

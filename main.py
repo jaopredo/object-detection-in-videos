@@ -30,12 +30,14 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="PA2 — identidade ao longo do tempo")
     parser.add_argument(
         "--mode",
-        choices=["gen-synth", "sweep", "baseline", "train", "eval", "both", "ablation", "stress", "fails"],
+        choices=["gen-synth", "sweep", "baseline", "train", "eval", "both", "ablation",
+                 "grid-search", "stress", "fails"],
         default="gen-synth",
         help="gen-synth: gera os vídeos sintéticos da Parte 0; sweep: gira os botões do "
              "gerador e mede onde o baseline quebra (Parte 0); baseline: rastreamento "
              "ingênuo por IoU (Parte 1); eval: caracteriza um split; train/both: treino do "
-             "modelo temporal (Parte 2); ablation: Eixo 1 da Parte 3",
+             "modelo temporal (Parte 2); ablation: Eixo 1 da Parte 3; grid-search: busca de "
+             "lr/batch_size com holdout interno (MOT17-02) e retreino final",
     )
     parser.add_argument(
         "--config", default="configs/synthetic.yaml",
@@ -102,6 +104,12 @@ def main():
     if args.mode == "ablation":
         from src.ablation.runner import AblationRunner
         AblationRunner(args.config).run()
+        return
+
+    # ===== PARTE 2b — GRID SEARCH DE HIPERPARÂMETROS =====
+    if args.mode == "grid-search":
+        from src.gridsearch.runner import GridSearchRunner
+        GridSearchRunner(args.config).run()
         return
 
     # ===== PARTE 4 — GALERIA DE FALHAS E HORIZONTE DE MEMÓRIA =====

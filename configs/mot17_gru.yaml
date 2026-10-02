@@ -29,7 +29,7 @@ model:
     peso_sob_oclusao: 3.0
 
 train:
-  epochs: 40
+  epochs: 100
   lr: 0.001
   batch_size: 256
   # janela de BPTT truncado. É o botão do Eixo 1 da Parte 3 (T ∈ {4, 8, 16, 32}).
@@ -72,3 +72,13 @@ tracking:
 output_dir: outputs/p2
 figures_dir: outputs/figures
 split: val
+
+# Parte 2b — grid search de hiperparâmetros (`make grid-search`). `params` é dotted-path →
+# lista de valores: adicionar uma chave aqui já entra na grade, sem mexer em código. A
+# validação de cada combinação é o holdout interno `grid_val` (MOT17-02), não o `val` acima
+# (MOT17-10) — ver `src/gridsearch/runner.py` e `SPLITS` em `src/data/mot17.py`.
+grid_search:
+  seeds: [0, 1, 2]
+  params:
+    train.lr: [0.0003, 0.001, 0.003, 0.01, 0.005]
+    train.batch_size: [64, 128, 256]

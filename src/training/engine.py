@@ -107,7 +107,15 @@ class TrainEngine:
 
         self._fixed_seeds()
 
-        train_loader, val_loader = DataPipeline(self.app_config).build_dataloaders()
+        # o grid search de hiperparâmetros aponta esses dois para "grid_train"/"grid_val"
+        # (o holdout interno em MOT17-02) via override de config; sem eles, treino normal
+        # no split oficial "train"/"val". Ficam em `train` e não em `data` porque
+        # `MOT17Factory.validate` rejeita qualquer chave de `data` que não reconheça.
+        train_split = t.get("train_split", "train")
+        val_split = t.get("val_split", "val")
+        train_loader, val_loader = DataPipeline(self.app_config).build_dataloaders(
+            train_split, val_split
+        )
 
         model = ModelFactoryRegistry.build(cfg).to(self.device)
         self.loss = LossFactoryRegistry.build(cfg)

@@ -44,7 +44,7 @@ class DataPipeline:
         """Um conjunto só — para avaliar sem pagar a geração dos outros dois."""
         return self.factory.build(self.cfg, split)
 
-    def build_dataloaders(self):
+    def build_dataloaders(self, train_split: str = "train", val_split: str = "val"):
         """Lotes de janelas de trajetória para treinar o modelo temporal (Parte 2).
 
         A amostra é uma janela de ``T`` quadros de **uma** identidade — ver
@@ -55,13 +55,18 @@ class DataPipeline:
         escolhe a época, e se o buraco fosse sorteado a cada avaliação a métrica mudaria de
         uma época para outra por motivo que não é o modelo. O regime sob oclusão é medido de
         propósito na Parte 4, com o rastreador inteiro e IDF1.
+
+        ``train_split``/``val_split`` default para o split oficial do projeto. O grid search
+        de hiperparâmetros passa ``"grid_train"``/``"grid_val"`` para treinar e validar sobre
+        o holdout interno (MOT17-02), sem tocar no ``val`` oficial (MOT17-10).
         """
         from torch.utils.data import DataLoader
 
         from src.data.windows import TrackWindows, collate
 
         t = self.cfg.train
-        splits = self.build_datasets()
+        train_dataset = self.build_split(train_split)
+        val_dataset = self.build_split(val_split)
         janela = t.get("window", 16)
 
         def monta(dataset, p_oclusao, embaralha):
@@ -77,6 +82,6 @@ class DataPipeline:
             )
 
         return (
-            monta(splits.train, t.get("p_oclusao", 0.5), True),
-            monta(splits.val, 0.0, False),
+            monta(train_dataset, t.get("p_oclusao", 0.5), True),
+            monta(val_dataset, 0.0, False),
         )

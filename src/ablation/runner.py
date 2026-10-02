@@ -30,37 +30,15 @@ from datetime import datetime
 from itertools import product
 from pathlib import Path
 
-import numpy as np
 import yaml
 
-from src.evaluation.config import EvalConfig
-from src.training.config import TrainConfig
+from src.core.grid_stats import mean_std_metrics
+from src.core.standalone_config import StandaloneConfig
 
 #: as três células do eixo e as quatro janelas de BPTT do enunciado
 CELULAS = ("rnn", "lstm", "gru")
 JANELAS = (4, 8, 16, 32)
 SEEDS = (0, 1, 2)
-
-
-class StandaloneConfig:
-    """Config não-singleton, para várias configurações na mesma sessão.
-
-    ``AppConfig`` é singleton (``SingletonMeta``): a segunda chamada devolve a primeira
-    instância e ignora o caminho novo. Numa ablação isso faria as 36 runs rodarem todas com
-    o config da primeira, e os números sairiam plausíveis e errados.
-    """
-
-    def __init__(self, raw: dict):
-        self._raw = raw
-        self.config_path = Path(raw.get("_origem", "<grade>"))
-        self.train_config = TrainConfig.from_dict(raw)
-        self.eval_config = EvalConfig.from_dict(raw)
-
-    def get_train_config(self):
-        return self.train_config
-
-    def get_eval_config(self):
-        return self.eval_config
 
 
 class AblationRunner:
@@ -155,15 +133,10 @@ class AblationRunner:
             celula, janela = chave.split("_T")
             entrada = {"cell": celula, "window": int(janela),
                        "n_params": next(iter(por_seed.values())).get("n_params")}
-            for metrica in ("idf1", "idp", "idr", "id_switches", "fragmentations",
-                            "mota", "val_loss"):
-                valores = [v[metrica] for v in por_seed.values() if metrica in v]
-                if valores:
-                    entrada[metrica] = {
-                        "mean": float(np.mean(valores)), "std": float(np.std(valores)),
-                        "values": {str(s): v[metrica] for s, v in por_seed.items()
-                                   if metrica in v},
-                    }
+            entrada.update(mean_std_metrics(
+                por_seed,
+                ("idf1", "idp", "idr", "id_switches", "fragmentations", "mota", "val_loss"),
+            ))
             saida[chave] = entrada
         return saida
 

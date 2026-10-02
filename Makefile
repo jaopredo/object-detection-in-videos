@@ -61,6 +61,11 @@ avaliar:
 parte3:
 	python -m main --mode ablation --config configs/mot17_gru.yaml
 
+# Parte 2b — grid search de lr/batch_size (bloco `grid_search:` do config), validado no
+# holdout interno MOT17-02, com retreino final no treino inteiro.
+grid-search:
+	python -m main --mode grid-search --config configs/mot17_gru.yaml
+
 parte4:
 	python -m main --mode fails --config configs/mot17_gru.yaml --split trainval
 
@@ -71,4 +76,4 @@ test:
 	pytest tests/ -q
 
 .PHONY: setup setup-cpu setup-pip setup-cpu-pip dados dados-imagens \
-        parte0 parte1 treinar avaliar parte3 parte4 parte5 test
+        parte0 parte1 treinar avaliar parte3 grid-search parte4 parte5 test

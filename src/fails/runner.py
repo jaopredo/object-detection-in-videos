@@ -4,7 +4,9 @@ O enunciado pede três coisas, e as três saem daqui:
 
 1. **três trechos** em que o modelo final erra feio, cada um com a figura (tira de quadros
    com gabarito e predição coloridos por identidade, mais o mapa intermediário — no nosso
-   caso a caixa que a recorrência previu) e um **diagnóstico** escrito;
+   caso a caixa que a recorrência previu) e um **diagnóstico** escrito. Além da figura
+   (exigida), cada trecho também sai como vídeo (``p4_falha_N.mp4``) — o buraco inteiro
+   quadro a quadro, não só as 5 amostras da tira, para ver a identidade se perder ao vivo;
 2. o **horizonte de memória efetivo**, medido analiticamente (norma do gradiente) e
    empiricamente (sobrevivência à oclusão), comparado com a distribuição de duração de
    oclusão do dataset;
@@ -74,7 +76,9 @@ class FailsRunner:
         dataset = DataPipeline(self.app_config, config=self.cfg).build_split(self.split)
         rastreado = self._rastrear(model, dataset)
 
-        out = Path(self.cfg.output_dir) / "p4"
+        # irmã de `output_dir` (ex.: outputs/p2 → outputs/p4), não filha: a Parte 4 reaproveita
+        # o config da Parte 2 só para achar o checkpoint, o que ela produz é outro artefato.
+        out = Path(self.cfg.output_dir).parent / "p4"
         out.mkdir(parents=True, exist_ok=True)
         figuras = Path(self.cfg.figures_dir)
 
@@ -242,9 +246,10 @@ class FailsRunner:
         print(f"\n  GALERIA DE FALHAS ({len(candidatos)} oclusões perdidas)")
         galeria = []
         for n, caso in enumerate(candidatos[: self.n_trechos], start=1):
-            path = figuras / f"p4_falha_{n}.png"
+            run = self._run_do_caso(caso)
             diagnostico = self._diagnostico(caso, memoria)
-            ok = self._figura_falha(caso, diagnostico, path)
+            ok_figura = self._figura_falha(caso, run, diagnostico, figuras / f"p4_falha_{n}.png")
+            ok_video = self._video_falha(caso, run, figuras / f"p4_falha_{n}.mp4")
             destino = ("a track morreu" if caso["depois"] is None
                        else f"voltou como {caso['depois']}")
             print(f"    {n}. {caso['sequencia']} id {caso['track_id']} — "
@@ -254,9 +259,19 @@ class FailsRunner:
                 "sequencia": caso["sequencia"], "track_id": caso["track_id"],
                 "duracao": caso["duracao"], "antes": caso["antes"],
                 "depois": caso["depois"], "diagnostico": diagnostico,
-                "figura": str(path) if ok else None,
+                "figura": str(figuras / f"p4_falha_{n}.png") if ok_figura else None,
+                "video": str(figuras / f"p4_falha_{n}.mp4") if ok_video else None,
             })
         return galeria
+
+    def _run_do_caso(self, caso):
+        """O ``OcclusionRun`` (início, fim, último/próximo quadro visto) por trás do evento.
+
+        Compartilhado entre a figura e o vídeo: os dois precisam dos mesmos limites do
+        buraco, e recalcular a busca duas vezes arriscava os dois discordarem.
+        """
+        runs = [r for r in occlusion_runs(caso["gt"]) if r.track_id == caso["track_id"]]
+        return min(runs, key=lambda r: abs(r.duration - caso["duracao"]))
 
     def _diagnostico(self, caso, memoria) -> str:
         """O diagnóstico no formato que o enunciado pede, com os números deste caso."""
@@ -282,48 +297,69 @@ class FailsRunner:
             f"supervisão que atravessasse esse buraco; {limite}. Resultado: {destino}."
         )
 
-    def _figura_falha(self, caso, diagnostico: str, path: Path) -> bool:
-        """Tira de quadros: gabarito sólido, predição tracejada, previsão da recorrência.
+    def _desenhar_quadro(self, ax, t: int, caso: dict, run) -> bool:
+        """Um quadro só: gabarito sólido, predição tracejada, recortado em volta do objeto.
+
+        Compartilhado entre a tira estática (``_figura_falha``) e o vídeo (``_video_falha``)
+        — é o mesmo desenho; muda só quantos quadros viram arquivo, e se é um PNG ou um MP4.
 
         O "mapa intermediário relevante" que o enunciado pede é, nesta trilha, **a caixa que
         a recorrência previu**: é a representação interna que decide a associação, e é ela
         que vai derivando durante a oclusão até não casar mais com nada.
+
+        Quando não há gabarito (a maior parte dos quadros do vídeo — é literalmente a
+        definição de oclusão) o enquadramento segue a caixa que a recorrência previu, em vez
+        de mostrar o quadro inteiro sem recorte. É o que deixa a câmera acompanhando a
+        previsão enquanto ela deriva — o próprio fenômeno que esta parte quer mostrar.
+
+        Returns:
+            ``False`` se a imagem do quadro não está em disco (``make dados-imagens``).
         """
         gt, pred = caso["gt"], caso["pred"]
-        runs = [r for r in occlusion_runs(gt) if r.track_id == caso["track_id"]]
-        run = min(runs, key=lambda r: abs(r.duration - caso["duracao"]))
+        imagem = ler_quadro(self.raiz, gt.name, t)
+        if imagem is None:
+            return False
 
+        ax.imshow(imagem)
+        caixa_gt = gt[t].box_of(caso["track_id"])
+        if caixa_gt is not None:
+            self._retangulo(ax, caixa_gt, cor(caso["track_id"]), "-", f"gt {caso['track_id']}")
+
+        caixa_pred = None
+        for track_id, caixa in zip(pred[t].ids, pred[t].boxes):
+            if int(track_id) in (caso["antes"], caso["depois"]):
+                self._retangulo(ax, caixa, cor(track_id), "--", f"pred {int(track_id)}")
+                caixa_pred = caixa
+
+        # recorta em volta do objeto: o quadro inteiro do MOT17 é 1920x1080 e o pedestre
+        # ocupa 40x100 px — sem o recorte, a figura mostra uma multidão e nenhuma caixa
+        caixa_referencia = caixa_gt if caixa_gt is not None else caixa_pred
+        if caixa_referencia is not None:
+            self._enquadrar(ax, caixa_referencia, imagem.shape)
+
+        dentro = run.start <= t <= run.end
+        ax.set_title(f"t={t}" + ("  (ocluído)" if dentro else ""), fontsize=9,
+                     color="#C44E52" if dentro else "black")
+        ax.set_xticks([]); ax.set_yticks([])
+        return True
+
+    def _figura_falha(self, caso, run, diagnostico: str, path: Path) -> bool:
+        """Tira de quadros: último visto, até 3 amostras dentro do buraco, primeiro visto
+        de volta."""
+        gt = caso["gt"]
         indices = [run.last_seen,
                    *np.linspace(run.start, run.end, num=min(3, run.duration), dtype=int).tolist(),
                    run.next_seen]
         indices = sorted(set(int(i) for i in indices))
 
-        imagens = [ler_quadro(self.raiz, gt.name, t) for t in indices]
-        if any(im is None for im in imagens):
-            print(f"       (sem imagem em disco para {gt.name} — figura pulada)")
-            return False
-
         fig, eixos = plt.subplots(1, len(indices), figsize=(3.0 * len(indices), 3.6))
         eixos = np.atleast_1d(eixos)
 
-        for ax, t, imagem in zip(eixos, indices, imagens):
-            ax.imshow(imagem)
-            caixa_gt = gt[t].box_of(caso["track_id"])
-            if caixa_gt is not None:
-                self._retangulo(ax, caixa_gt, cor(caso["track_id"]), "-",
-                                f"gt {caso['track_id']}")
-            for track_id, caixa in zip(pred[t].ids, pred[t].boxes):
-                if int(track_id) in (caso["antes"], caso["depois"]):
-                    self._retangulo(ax, caixa, cor(track_id), "--", f"pred {int(track_id)}")
-
-            # recorta em volta do objeto: o quadro inteiro do MOT17 é 1920x1080 e o pedestre
-            # ocupa 40x100 px — sem o recorte, a figura mostra uma multidão e nenhuma caixa
-            if caixa_gt is not None:
-                self._enquadrar(ax, caixa_gt, imagem.shape)
-            dentro = run.start <= t <= run.end
-            ax.set_title(f"t={t}" + ("  (ocluído)" if dentro else ""), fontsize=9,
-                         color="#C44E52" if dentro else "black")
-            ax.set_xticks([]); ax.set_yticks([])
+        for ax, t in zip(eixos, indices):
+            if not self._desenhar_quadro(ax, t, caso, run):
+                plt.close(fig)
+                print(f"       (sem imagem em disco para {gt.name} — figura pulada)")
+                return False
 
         fig.suptitle(
             f"{gt.name} — identidade {caso['track_id']}, {run.duration} quadros de oclusão\n"
@@ -334,6 +370,42 @@ class FailsRunner:
         path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(path, dpi=130, bbox_inches="tight")
         plt.close(fig)
+        return True
+
+    def _video_falha(self, caso, run, path: Path, margem: int = 5) -> bool:
+        """O trecho inteiro como vídeo, quadro a quadro, em vez de só 5 amostras.
+
+        Mesmo desenho da figura estática (``_desenhar_quadro``); cada quadro vira um array
+        RGB via o canvas do matplotlib, e a sequência de arrays vira MP4 com
+        ``imageio.mimwrite`` — a mesma chamada que ``src/inference/predict.py::gravar_video``
+        já usa para o vídeo do ``inferencia.ipynb``, então não é dependência nova.
+
+        ``margem`` quadros de folga antes do sumiço e depois do reaparecimento dão contexto
+        de como a identidade era rastreada normalmente antes e depois do buraco.
+        """
+        import imageio.v2 as imageio
+
+        gt = caso["gt"]
+        inicio = max(0, run.last_seen - margem)
+        fim = min(len(gt) - 1, run.next_seen + margem)
+
+        quadros = []
+        for t in range(inicio, fim + 1):
+            # figsize/dpi fixos e sem `tight_layout`/`bbox_inches="tight"`: um MP4 exige
+            # quadros do mesmo tamanho, e "tight" recorta diferente conforme o texto do
+            # título muda de um quadro para o outro (ex.: "(ocluído)" aparece e some)
+            fig, ax = plt.subplots(figsize=(5.0, 5.6), dpi=100)
+            if not self._desenhar_quadro(ax, t, caso, run):
+                plt.close(fig)
+                print(f"       (sem imagem em disco para {gt.name} — vídeo pulado)")
+                return False
+            fig.subplots_adjust(left=0.02, right=0.98, top=0.90, bottom=0.02)
+            fig.canvas.draw()
+            quadros.append(np.asarray(fig.canvas.buffer_rgba())[:, :, :3].copy())
+            plt.close(fig)
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        imageio.mimwrite(path, quadros, fps=gt.fps, macro_block_size=1)
         return True
 
     @staticmethod

@@ -69,6 +69,9 @@ uv run python -m main --mode train --config configs/mot17_gru.yaml
 # Parte 2 — UM COMANDO QUE AVALIA
 uv run python -m main --mode eval  --config configs/mot17_gru.yaml
 
+# Parte 2b — grid search de lr/batch_size (opcional; ver seção própria abaixo)
+uv run python -m main --mode grid-search --config configs/mot17_gru.yaml
+
 # Parte 3 — ablação do Eixo 1 (3 células × 4 janelas × 3 seeds)
 uv run python -m main --mode ablation --config configs/mot17_gru.yaml
 # Parte 4 — galeria de falhas e horizonte de memória
@@ -369,6 +372,51 @@ formas: carregar o `h` do fim de uma janela para o início da seguinte (o estado
 tem 55 números), e comparar a caixa prevista do fim da janela anterior com as detecções do
 começo da seguinte. As duas são baratas justamente porque o que persiste é pequeno.
 
+## Parte 2b — grid search de `lr`/`batch_size`
+
+**Opcional.** Não roda sozinho em nenhum outro modo — só com `--mode grid-search`, e usa o
+bloco `grid_search:` já presente em `configs/mot17_gru.yaml`:
+
+```yaml
+grid_search:
+  seeds: [0, 1, 2]
+  params:
+    train.lr: [0.0003, 0.001, 0.003]
+    train.batch_size: [128, 256]
+```
+
+```bash
+make grid-search
+# ou
+uv run python -m main --mode grid-search --config configs/mot17_gru.yaml
+```
+
+Nenhum parâmetro de linha de comando a mais: para mudar os valores testados, edita a lista
+em `params` no YAML — qualquer chave em notação `bloco.campo` (ex.: `model.param_budget`)
+entra na grade sem precisar tocar em código.
+
+O que acontece, nessa ordem:
+
+1. Treina uma vez por combinação de `lr`/`batch_size` × seed (6 combinações × 3 seeds = 18
+   treinos), usando **só 3 das 4 sequências de treino** (`MOT17-04, 11, 13`) — a MOT17-02
+   sai do treino e vira a validação interna da busca.
+2. Mede o IDF1 do rastreador completo em cima da MOT17-02 para cada run, e tira a
+   média ± desvio entre as 3 seeds de cada combinação.
+3. Escolhe a combinação de maior IDF1 médio e **retreina com as 4 sequências de treino
+   inteiras** (a MOT17-02 volta), validando normalmente em MOT17-10 — como um treino comum.
+
+Saída: os runs de busca (passo 1) ficam isolados em
+`outputs/gridsearch/run_<timestamp>/` (`report.md`/`report.json` com a tabela de todas as
+combinações). **O retreino final (passo 3) grava no mesmo `output_dir` do YAML base** — o
+mesmo lugar que `make treinar` usa (`outputs/p2/best.pth`), de propósito: é o que deixa
+`--mode eval`/`fails`/`stress` reaproveitarem o vencedor **sem** precisar de `--checkpoint`
+nem de nenhuma mudança neles. Consequência a assumir: rodar `make grid-search` sobrescreve o
+checkpoint que já estivesse em `outputs/p2`, exatamente como rodar `make treinar` de novo.
+
+**Custo**: 18 treinos de busca + 1 retreino final = 19 treinos completos, bem mais caro que
+`make treinar` sozinho. A MOT17-10 (`val` oficial) nunca é tocada pela busca — só entra na
+etapa 3, como sempre.
+
 ## Parte 3 — Eixo 1: a célula recorrente
 
 RNN simples × LSTM × GRU, **mesmo orçamento de parâmetros**, com `T ∈ {4, 8, 16, 32}` e
@@ -436,10 +484,11 @@ metrics.py                  entregável nomeado no enunciado (re-export de src/m
 main.py                     entry point único (--mode)
 src/
   boxes.py                  parametrização da caixa (incremento estilo R-CNN)
-  core/                     AppConfig (singleton) carregado do YAML
+  core/     config.py (AppConfig, singleton) · standalone_config.py (não-singleton,
+            para grades de runs) · grid_stats.py (média ± desvio entre seeds)
   data/     sequence.py · mot_format.py · detections.py · detector_sim.py
             synthetic_video.py · mot17.py · windows.py (janelas de BPTT)
-            factory.py (registry) · pipeline.py (3 splits)
+            factory.py (registry) · pipeline.py (splits, incl. grid_train/grid_val)
   metrics/  iou.py · matching.py (guloso/Hungarian/CLEAR-MOT) · identity.py · detection.py
   models/   motion_rnn.py (MotionRNN + orçamento de parâmetros) · checkpoint.py · factory.py
   losses/   motion.py (smooth-L1 sobre o resíduo) · factory.py
@@ -448,6 +497,7 @@ src/
   evaluation/ engine.py · tracking_engine.py · occlusion.py · dificuldade.py
   analysis/ memory.py (horizonte analítico e empírico)
   ablation/ runner.py (Eixo 1)
+  gridsearch/ runner.py (Parte 2b — lr/batch_size, holdout MOT17-02)
   fails/    runner.py (Parte 4)
   stress/   framerate.py (Parte 5)
   synthetic/ runner.py (gen-synth) · sweep.py (varredura dos botões)
