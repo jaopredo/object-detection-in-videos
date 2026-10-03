@@ -124,7 +124,8 @@ class GridSearchRunner:
 
         total = time.perf_counter() - t0
         print(f"\ntempo total: {total / 60:.1f} min")
-        print(f"vencedora: {chave_fmt(combos_por_chave[vencedora])}")
+        print(f"escolhida: {chave_fmt(combos_por_chave[vencedora])} "
+              f"(ver report.md — pode estar em empate estatístico com outras)")
         print(f"relatório: {self.run_dir / 'report.md'}")
         print(f"modelo final: {Path(final['output_dir']) / 'best.pth'}")
         return estatisticas
@@ -183,8 +184,25 @@ class GridSearchRunner:
             saida[chave] = entrada
         return saida
 
+    def _empatadas_com_vencedora(self, estatisticas: dict, vencedora: str) -> list[str]:
+        """Combinações cuja faixa de IDF1 (média ± desvio) encosta na da vencedora.
+
+        A régua é a mesma que a Parte 3 já usa para a célula recorrente: um efeito só conta
+        se for maior que o espalhamento entre seeds. Aplicada aqui, ela impede o relatório de
+        chamar de "vencedora" uma combinação cuja vantagem é menor que o próprio ruído —
+        exatamente o contrário aconteceria se só a média decidisse, sem olhar o desvio.
+        """
+        media_v = estatisticas[vencedora]["idf1"]["mean"]
+        desvio_v = estatisticas[vencedora]["idf1"]["std"]
+        return [
+            c for c in estatisticas
+            if abs(estatisticas[c]["idf1"]["mean"] - media_v)
+               <= estatisticas[c]["idf1"]["std"] + desvio_v
+        ]
+
     def _relatorio(self, estatisticas: dict, vencedora: str, combos_por_chave: dict,
                     final: dict) -> None:
+        empatadas = self._empatadas_com_vencedora(estatisticas, vencedora)
         colunas = list(next(iter(combos_por_chave.values())))
         cabecalho = " | ".join(c.split(".")[-1] for c in colunas)
         linhas = [
@@ -202,16 +220,36 @@ class GridSearchRunner:
             e = estatisticas[chave]
             fmt = lambda m, c=4: (f"{e[m]['mean']:.{c}f} ± {e[m]['std']:.{c}f}"
                                   if m in e else "—")
-            marca = " **← vencedora**" if chave == vencedora else ""
+            if chave == vencedora:
+                marca = " **← escolhida**"
+            elif chave in empatadas:
+                marca = " (empatada)"
+            else:
+                marca = ""
             valores = " | ".join(str(e["overrides"][c]) for c in colunas)
             linhas.append(
                 f"| {valores} | {fmt('idf1')} | {fmt('val_loss', 5)} | "
                 f"{fmt('id_switches', 1)} |{marca}"
             )
 
+        linhas.append("")
+        if len(empatadas) > 1:
+            outras = [c for c in empatadas if c != vencedora]
+            linhas += [
+                f"**Empate estatístico.** A diferença de IDF1 entre `{chave_fmt(combos_por_chave[vencedora])}` "
+                f"e {len(outras)} outra(s) combinação(ões) marcada(s) \"(empatada)\" é menor "
+                f"que a soma dos desvios entre seeds — não dá pra afirmar que uma é melhor que "
+                f"a outra, só que `{chave_fmt(combos_por_chave[vencedora])}` teve a maior "
+                f"média entre as empatadas. **Não apresentem isso como \"o grid search "
+                f"encontrou o melhor hiperparâmetro\"** — a afirmação defensável é sobre o que "
+                f"separa claramente as combinações **fora** do empate (compare a tabela "
+                f"acima).",
+                "",
+            ]
         linhas += [
-            "",
-            f"**Vencedora**: `{chave_fmt(combos_por_chave[vencedora])}`.",
+            f"**Escolhida**: `{chave_fmt(combos_por_chave[vencedora])}`"
+            + (" (maior média; empatada com outras — ver nota acima)." if len(empatadas) > 1
+               else " (maior média, sem empate estatístico com a segunda colocada)."),
             "",
             f"**Retreino final** (4 sequências de treino, validação em MOT17-10): "
             f"IDF1 {final['idf1']:.4f} | val_loss {final.get('val_loss', float('nan')):.5f} "

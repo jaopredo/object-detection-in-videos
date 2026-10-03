@@ -1,0 +1,60 @@
+# Parte 4 — só para medir o horizonte analítico de memória com uma régua maior.
+#
+# `train.window` aqui controla só o comprimento da janela usada por `norma_do_gradiente_por_
+# distancia` dentro de `--mode fails` (src/fails/runner.py::_horizonte) — não treina nada. O
+# checkpoint carregado é o mesmo de `outputs/p2/best.pth` (treinado com window=16, ver
+# `mot17_gru.yaml`); aqui só se alonga a régua pra enxergar até onde o gradiente realmente cai,
+# já que com window=16 a curva não tinha chegado nem perto de 1% (ver README, Parte 4).
+#
+# window=32 e não 31: é um dos tamanhos que a ablação da Parte 3 já testou, então a comparação
+# "gradiente por célula" (`_comparar_celulas`) continua achando os checkpoints `_T32/` em vez
+# de ser pulada por falta de arquivo.
+name: p2_mot17_gru_horizonte
+seed: 0
+
+data:
+  kind: mot17
+  root: src/data/datasets/MOT17
+  detector: SDP
+  min_score: 0.0
+
+model:
+  name: motion_rnn
+  cell: gru
+  param_budget: 20000
+  layers: 1
+  prever_incerteza: false
+  loss:
+    name: smooth_l1_box
+    beta: 0.1
+    peso_sob_oclusao: 3.0
+
+train:
+  epochs: 100
+  lr: 0.01
+  batch_size: 64
+  # único campo que muda em relação a mot17_gru.yaml — ver nota no topo do arquivo
+  window: 32
+  stride: 8
+  p_oclusao: 0.5
+  oclusao_max: 8
+  monitor: val_loss
+  monitor_mode: min
+  grad_clip: 1.0
+  save_every: 10
+  num_workers: 0
+
+tracking:
+  tracker: rnn
+  iou_threshold: 0.3
+  max_age: 10
+  min_hits: 3
+  associacao: hungarian
+  emitir_sem_observacao: false
+
+# mesmo output_dir/figures_dir do mot17_gru.yaml de propósito: carrega o MESMO checkpoint
+# (outputs/p2/best.pth) e sobrescreve os mesmos arquivos de saída da Parte 4 — não cria uma
+# árvore de output paralela, porque o modelo é o mesmo, só a régua de medição mudou.
+output_dir: outputs/p2
+figures_dir: outputs/figures
+split: val

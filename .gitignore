@@ -30,6 +30,13 @@ outputs/**/img1/
 # próprios números em JSON, de modo que a figura seja reproduzível sem os pesos.
 outputs/ablation/**/*.pth
 
+# O mesmo vale para os checkpoints de busca do grid search (Parte 2b): são pesos
+# intermediários de cada combinação, regeneráveis com `make grid-search`. O que dá lastro
+# aos números é o `report.md`/`report.json`. O checkpoint que importa de verdade (o
+# retreino final, vencedor da busca) não mora aqui — grava direto em `outputs/p2/best.pth`,
+# que já é versionado pela regra acima.
+outputs/gridsearch/**/*.pth
+
 # O vídeo de demonstração do notebook: 16 MB que saem de `notebooks/inferencia.ipynb` em
 # segundos. Versionar a saída de um entregável que existe para ser executado é redundante.
 outputs/inferencia/

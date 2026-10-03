@@ -13,15 +13,16 @@ No PA1 fomos de *class-aware* para *instance-aware* no espaço; aqui vamos de
 
 MOT17-10 (validação), detecções públicas SDP **congeladas**, mesma gestão de tracks nos três:
 
-| rastreador | IDF1 | IDP | IDR | ID switches | MOTA |
-|---|---|---|---|---|---|
-| IoU, posição constante (Parte 1) | 0,4224 | 0,475 | 0,380 | 463 | 0,6479 |
-| IoU + velocidade constante | 0,3839 | 0,434 | 0,344 | 487 | 0,6462 |
-| **RNN como modelo de movimento (Parte 2)** | **0,4724** | **0,532** | **0,425** | **410** | **0,6530** |
+| rastreador | IDF1 | IDP | IDR | ID switches | FRAG | MOTA |
+|---|---|---|---|---|---|---|
+| IoU, posição constante (Parte 1) | 0,4224 | 0,475 | 0,380 | 463 | 433 | 0,6479 |
+| IoU + velocidade constante | 0,3839 | 0,434 | 0,344 | 487 | 430 | 0,6462 |
+| **RNN como modelo de movimento (Parte 2)** | **0,4874** | **0,548** | **0,439** | **395** | 436 | **0,6560** |
 
-+11,8% de IDF1 e −11,4% de ID switches sobre o baseline do enunciado, e +23,1% sobre o
-baseline honesto de velocidade constante. A detecção é a mesma nos três (AP@0,5 = 0,8072):
-**tudo que muda é o que acontece entre os quadros.**
++15,4% de IDF1 e −14,7% de ID switches sobre o baseline do enunciado, e +27,0% sobre o
+baseline honesto de velocidade constante. Hiperparâmetros (`lr`, `batch_size`) escolhidos
+pelo grid search da Parte 2b (`outputs/gridsearch/run_*/report.md`). A detecção é a mesma
+nos três (AP@0,5 = 0,8072): **tudo que muda é o que acontece entre os quadros.**
 
 ## Setup
 
@@ -431,17 +432,23 @@ curva de gradiente da RNN simples com a do modelo com portas na mesma janela.
 
 ## Parte 4 — galeria de falhas e horizonte de memória
 
-### As duas medidas concordam
+### As duas medidas discordam — e isso é o resultado
 
 | medida | valor |
 |---|---|
-| **analítica** — até onde `‖∂L_t/∂h_{t−k}‖` chega | **6 passos** (o gradiente cai 67× até lá) |
-| **empírica** — até quantos quadros de buraco a identidade volta | **5 quadros** |
+| **analítica** — até onde `‖∂L_t/∂h_{t−k}‖` chega | **não morre** — medido até k=30 (janela estendida só para esta medida, `configs/mot17_gru_horizonte.yaml`), o gradiente cai rápido nos 3 primeiros passos e depois **estabiliza em ~65%** do valor original. Nunca chega perto do corte de 1%. |
+| **empírica** — até quantos quadros de buraco a identidade volta | **10 quadros** |
 | **a régua** — oclusão do dataset | média 20,4 quadros, p90 46 |
 
-**63% das oclusões do dataset são mais longas que o horizonte.** A curva analítica é uma reta
-em escala log — decaimento exponencial, a história de gradiente que some contada na aula,
-medida no nosso modelo.
+**43% das oclusões do dataset são mais longas que o horizonte empírico (10 quadros).**
+
+**Por que as duas discordam**: com o checkpoint atual (`lr=0,01`, vencedor do grid search —
+ver Parte 2b), o gradiente analítico não desaparece no sentido clássico — ele platô, não cai.
+Isso é diferente do regime da ablação da Parte 3 (treinada com `lr=0,001`), onde o gradiente
+morre rápido de verdade. **As duas medidas não podem ser citadas como se fossem do mesmo
+modelo**: a analítica aqui é inconclusiva (não localiza onde o modelo "esquece"), e a medida
+confiável para o horizonte de memória efetivo é a empírica (10 quadros) — que não depende de
+`lr` nem do tamanho da janela usada pra medir.
 
 ### O estimador empírico que estava errado
 
@@ -466,16 +473,18 @@ memória: nenhum detector roda de novo.
 | condição | 1/1 | 1/2 | 1/5 |
 |---|---|---|---|
 | IoU (baseline) | 0,4224 | 0,4105 | 0,2527 |
-| RNN alheio ao Δt | 0,4724 | 0,4760 | 0,3298 |
-| RNN informado do Δt | 0,4724 | 0,4740 | 0,3287 |
+| RNN alheio ao Δt | 0,4874 | 0,4322 | 0,3138 |
+| RNN informado do Δt | 0,4874 | 0,4562 | 0,2967 |
 
-**Informar o Δt correto não recupera nada** (−0,7% da queda). A pergunta do enunciado
-("alimentar Δt na recorrência resolveria?") tem resposta medida, e é **não** — com o
-diagnóstico junto: a 1/5, o Δt pedido é 0,1667 s, **4,2× o maior valor que o modelo já viu no
-treino**. Ter a entrada não é ter aprendido a usá-la.
+**Informar o Δt correto não recupera a queda** — na verdade piora de leve a 1/5 (−9,8% em
+cima da queda, não uma recuperação). A pergunta do enunciado ("alimentar Δt na recorrência
+resolveria?") tem resposta medida, e é **não** — com o diagnóstico junto: a 1/5, o Δt pedido
+é 0,1667 s, **4,2× o maior valor que o modelo já viu no treino**. Ter a entrada não é ter
+aprendido a usá-la.
 
-Detalhe secundário: a 1/2 o RNN melhora de leve (0,4760 contra 0,4724). Subamostrar remove
-alguns quadros de detecção ruim.
+Vídeo da degradação, lado a lado com as caixas que o rastreador prevê em cada taxa:
+`outputs/figures/p5_video_MOT17-10_1-2.mp4` e `outputs/figures/p5_video_MOT17-10_1-5.mp4`
+(condição "RNN alheio ao Δt" — a que de fato aconteceria sem nenhuma mudança no modelo).
 
 ## Estrutura
 

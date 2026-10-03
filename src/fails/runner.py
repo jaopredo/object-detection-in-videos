@@ -98,6 +98,12 @@ class FailsRunner:
         _, val = DataPipeline(self.app_config).build_dataloaders()
         normas = norma_do_gradiente_por_distancia(model, next(iter(val)))
         h_analitico = horizonte_analitico(normas)
+        # `horizonte_analitico` devolve o ÚLTIMO k em que o gradiente ainda está >= 1% do
+        # valor em k=0. Se esse último ponto da régua ainda estiver >= 1%, a curva nunca
+        # cruzou o corte dentro da janela medida — "h_analitico" é só onde a régua acabou,
+        # não onde o gradiente morreu. Sem essa distinção, a legenda da figura afirmaria uma
+        # morte que não foi observada (ver README, Parte 4).
+        censurado = len(normas) > 1 and (normas[-1] / normas[0]) >= 0.01
 
         eventos = [e for gt, _, pred in rastreado
                    for e in sobrevivencia_a_oclusao(gt, pred)]
@@ -106,6 +112,7 @@ class FailsRunner:
 
         resumo = {
             "horizonte_analitico": h_analitico,
+            "horizonte_analitico_censurado": censurado,
             "horizonte_empirico": h_empirico,
             "queda_do_gradiente": float(normas[0] / normas[min(h_analitico, len(normas) - 1)])
                                   if len(normas) > 1 else 1.0,
@@ -122,8 +129,13 @@ class FailsRunner:
         }
 
         print("\n  HORIZONTE DE MEMÓRIA")
-        print(f"    analítico  {h_analitico} passos "
-              f"(o gradiente cai {resumo['queda_do_gradiente']:.0f}x até lá)")
+        if censurado:
+            print(f"    analítico  não morreu em {h_analitico} passos (régua medida até "
+                  f"aqui) — estabilizou em {100 * normas[-1] / normas[0]:.0f}% do valor "
+                  f"original, não caiu")
+        else:
+            print(f"    analítico  {h_analitico} passos "
+                  f"(o gradiente cai {resumo['queda_do_gradiente']:.0f}x até lá)")
         print(f"    empírico   {h_empirico} quadros "
               f"(sobrevivência acima de 50%)")
         print(f"    a régua    oclusão média {resumo['oclusao_media']:.1f} quadros, "
@@ -143,8 +155,13 @@ class FailsRunner:
         k = np.arange(len(normas))
         a.semilogy(k, normas / normas[0], "o-", color="#C44E52", lw=2)
         a.axhline(0.01, color="gray", ls="--", lw=1, label="1% — corte do horizonte")
+        rotulo_linha = (
+            f"régua acaba em k={resumo['horizonte_analitico']} (não cruzou 1%)"
+            if resumo.get("horizonte_analitico_censurado")
+            else f"horizonte analítico = {resumo['horizonte_analitico']}"
+        )
         a.axvline(resumo["horizonte_analitico"], color="#4C72B0", ls=":", lw=2,
-                  label=f"horizonte analítico = {resumo['horizonte_analitico']}")
+                  label=rotulo_linha)
         a.set_xlabel("k — passos para trás")
         a.set_ylabel(r"$\|\partial L_t / \partial h_{t-k}\|$  (relativo a $k=0$)")
         a.set_title("Medida analítica: até onde o gradiente chega", fontsize=10)
@@ -176,12 +193,19 @@ class FailsRunner:
         rotulos = b.get_legend_handles_labels()[1] + eixo.get_legend_handles_labels()[1]
         b.legend(linhas, rotulos, fontsize=8, loc="upper right")
 
-        fig.suptitle(
-            f"Horizonte de memória: o gradiente morre em {resumo['horizonte_analitico']} passos, "
-            f"e {100 * resumo['fracao_de_oclusoes_alem_do_horizonte']:.0f}% das oclusões "
-            f"duram mais que isso",
-            fontsize=11,
-        )
+        if resumo.get("horizonte_analitico_censurado"):
+            titulo = (
+                f"Horizonte de memória: o gradiente NÃO morre até k={resumo['horizonte_analitico']} "
+                f"(estabiliza em {100 * normas[-1] / normas[0]:.0f}% do valor original) — "
+                f"medida empírica (sobrevivência à oclusão) é a confiável aqui"
+            )
+        else:
+            titulo = (
+                f"Horizonte de memória: o gradiente morre em {resumo['horizonte_analitico']} passos, "
+                f"e {100 * resumo['fracao_de_oclusoes_alem_do_horizonte']:.0f}% das oclusões "
+                f"duram mais que isso"
+            )
+        fig.suptitle(titulo, fontsize=11)
         plt.tight_layout()
         plt.savefig(path, dpi=130, bbox_inches="tight")
         plt.close(fig)

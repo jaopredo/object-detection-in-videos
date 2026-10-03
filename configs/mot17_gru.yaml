@@ -30,8 +30,11 @@ model:
 
 train:
   epochs: 100
-  lr: 0.001
-  batch_size: 256
+  # lr/batch_size: vencedores do grid search (`make grid-search`, ver report.md em
+  # outputs/gridsearch/) — precisam bater com o `best.pth` de outputs/p2, senão `make
+  # treinar` não reproduz o checkpoint apresentado.
+  lr: 0.01
+  batch_size: 64
   # janela de BPTT truncado. É o botão do Eixo 1 da Parte 3 (T ∈ {4, 8, 16, 32}).
   window: 16
   stride: 8

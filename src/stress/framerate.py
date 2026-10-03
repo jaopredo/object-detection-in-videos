@@ -74,6 +74,7 @@ class FramerateStress:
         self.checkpoint = Path(checkpoint) if checkpoint else Path(self.cfg.output_dir) / "best.pth"
         self.fatores = tuple(fatores)
         self.botoes = {k: v for k, v in self.cfg.tracking.items() if k != "tracker"}
+        self.raiz = self.cfg.data.get("root", "src/data/datasets/MOT17")
 
     @torch.no_grad()
     def run(self) -> dict:
@@ -116,6 +117,15 @@ class FramerateStress:
 
         self._resposta(resultados)
 
+        figuras = Path(self.cfg.figures_dir)
+        for gt, dets in sequencias:
+            for k in self.fatores:
+                if k == 1:
+                    continue  # taxa original não é "estresse", é o vídeo de sempre
+                tracker, stride = condicoes["RNN alheio ao Δt"](k)
+                self._video_condicao(gt, dets, k, tracker, stride,
+                                     figuras / f"p5_video_{gt.name}_1-{k}.mp4")
+
         # irmã de `output_dir` (ex.: outputs/p2 → outputs/p5), não filha: a Parte 5 reaproveita
         # o config da Parte 2 só para achar o checkpoint, o que ela produz é outro artefato.
         out = Path(self.cfg.output_dir).parent / "p5"
@@ -131,6 +141,41 @@ class FramerateStress:
         print(f"\n  detalhe: {out / 'framerate.json'}")
         print(f"  figura:  {figura}")
         return resultados
+
+    def _video_condicao(self, gt: Sequence, dets, k: int, tracker, stride: int,
+                        path: Path) -> bool:
+        """O vídeo subamostrado (1 a cada ``k`` quadros) com as caixas que o rastreador
+        previu sobre ele — literalmente o que a Tabela de IDF1 está medindo, em vídeo.
+
+        Reaproveita ``desenhar``/``cor_da_identidade`` de ``src/inference/predict.py`` — o
+        mesmo desenho direto no array que o ``inferencia.ipynb`` usa pro vídeo final, sem
+        matplotlib, rápido o bastante pra centenas de quadros. Não é o estilo "zoom numa
+        falha" da Parte 4 (aqui o interesse é o vídeo inteiro, não uma identidade só).
+
+        Toca em **tempo real** na taxa subamostrada (``fps = gt.fps / k``), não na taxa
+        original: é o que mostra visualmente "câmera mais lenta/choppier", em vez de um vídeo
+        acelerado — a mesma convenção de ``subamostrar()``.
+        """
+        from src.inference.predict import desenhar
+        from src.data.mot17 import ler_quadro
+        import imageio.v2 as imageio
+
+        gt_k = subamostrar(gt, k)
+        dets_k = subamostrar_deteccoes(dets, k)
+        pred = tracker.run(dets_k, gt_k.name, gt.fps, gt.width, gt.height, stride=stride)
+
+        quadros = []
+        for t in range(len(gt_k)):
+            # quadro t da sequência subamostrada = quadro t*k da sequência original em disco
+            imagem = ler_quadro(self.raiz, gt.name, t * k)
+            if imagem is None:
+                print(f"       (sem imagem em disco para {gt.name} — vídeo 1/{k} pulado)")
+                return False
+            quadros.append(desenhar(imagem, pred[t]))
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        imageio.mimwrite(path, quadros, fps=gt.fps / k, macro_block_size=1)
+        return True
 
     def _resposta(self, resultados: dict) -> None:
         """A resposta à pergunta do enunciado, em números, no fim da execução."""

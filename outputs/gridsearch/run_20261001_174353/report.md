@@ -1,14 +1,14 @@
 # Grid search — hiperparâmetros de treino (Parte 2b)
 
-Gerado em 2026-10-01 21:13. 3 seeds (0, 1, 2), média ± desvio. Avaliado no holdout interno **grid_val** (MOT17-02) — não é o `val` oficial do projeto (MOT17-10).
+Gerado em 2026-10-02 12:15. 3 seeds (0, 1, 2), média ± desvio. Avaliado no holdout interno **grid_val** (MOT17-02) — não é o `val` oficial do projeto (MOT17-10).
 
 | lr | batch_size | IDF1 | val_loss | ID switches |
 |---|---|---|---|---|
-| 0.01 | 64 | 0.3671 ± 0.0026 | 0.00076 ± 0.00002 | 329.3 ± 7.8 | **← vencedora**
-| 0.01 | 128 | 0.3641 ± 0.0049 | 0.00075 ± 0.00000 | 308.3 ± 7.6 |
-| 0.005 | 256 | 0.3636 ± 0.0028 | 0.00076 ± 0.00001 | 322.3 ± 4.8 |
-| 0.01 | 256 | 0.3625 ± 0.0025 | 0.00077 ± 0.00001 | 334.0 ± 14.4 |
-| 0.005 | 128 | 0.3615 ± 0.0057 | 0.00074 ± 0.00001 | 329.3 ± 7.9 |
+| 0.01 | 64 | 0.3671 ± 0.0026 | 0.00076 ± 0.00002 | 329.3 ± 7.8 | **← escolhida**
+| 0.01 | 128 | 0.3641 ± 0.0049 | 0.00075 ± 0.00000 | 308.3 ± 7.6 | (empatada)
+| 0.005 | 256 | 0.3636 ± 0.0028 | 0.00076 ± 0.00001 | 322.3 ± 4.8 | (empatada)
+| 0.01 | 256 | 0.3625 ± 0.0025 | 0.00077 ± 0.00001 | 334.0 ± 14.4 | (empatada)
+| 0.005 | 128 | 0.3615 ± 0.0057 | 0.00074 ± 0.00001 | 329.3 ± 7.9 | (empatada)
 | 0.003 | 256 | 0.3569 ± 0.0040 | 0.00077 ± 0.00001 | 325.7 ± 4.1 |
 | 0.003 | 128 | 0.3566 ± 0.0071 | 0.00074 ± 0.00001 | 326.3 ± 6.2 |
 | 0.001 | 64 | 0.3558 ± 0.0040 | 0.00075 ± 0.00001 | 323.0 ± 11.9 |
@@ -20,6 +20,8 @@ Gerado em 2026-10-01 21:13. 3 seeds (0, 1, 2), média ± desvio. Avaliado no hol
 | 0.0003 | 128 | 0.3240 ± 0.0038 | 0.00086 ± 0.00002 | 414.7 ± 11.6 |
 | 0.0003 | 256 | 0.3238 ± 0.0060 | 0.00087 ± 0.00001 | 410.0 ± 5.9 |
 
-**Vencedora**: `train.lr=0.01, train.batch_size=64`.
+**Empate estatístico.** A diferença de IDF1 entre `train.lr=0.01, train.batch_size=64` e 4 outra(s) combinação(ões) marcada(s) "(empatada)" é menor que a soma dos desvios entre seeds — não dá pra afirmar que uma é melhor que a outra, só que `train.lr=0.01, train.batch_size=64` teve a maior média entre as empatadas. **Não apresentem isso como "o grid search encontrou o melhor hiperparâmetro"** — a afirmação defensável é sobre o que separa claramente as combinações **fora** do empate (compare a tabela acima).
+
+**Escolhida**: `train.lr=0.01, train.batch_size=64` (maior média; empatada com outras — ver nota acima).
 
 **Retreino final** (4 sequências de treino, validação em MOT17-10): IDF1 0.4874 | val_loss 0.00525 | checkpoint `outputs/p2/best.pth` (mesmo lugar de `make treinar`).
